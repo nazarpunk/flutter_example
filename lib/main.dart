@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:page_view/physics.dart';
-
-import 'scroll.dart';
+import 'physics.dart';
+import 'reorderable_list.dart';
+import 'scroll.dart'; // ignore: unused_import
 
 void main() => runApp(const MyApp());
 
@@ -28,15 +28,22 @@ class _SliderWidgetState extends State<SliderWidget> {
   List<int> items = List<int>.generate(10, (index) => index);
 
   @override
+
+  /// [PageView]
+  // ignore: prefer_expression_function_bodies
   Widget build(BuildContext context) {
-    final SliderController controller =
-        SliderController(viewportFraction: 1 / 3);
-    return SliderView(
-      physics: const SliderScrollPhysics(itemsCount: 3),
-      controller: controller,
+    // final SliderController controller = SliderController(viewportFraction: 1 / 3);
+    return SliderReorderableListView(
+      //padEnds: false,
+      scrollDirection: Axis.horizontal,
+      //physics: const SliderScrollPhysics(itemsCount: 3),
+      //controller: controller,
+      onReorder: (oldIndex, newIndex) {},
       children: [
         for (var i = 0; i < items.length; i++)
           Container(
+            width: MediaQuery.of(context).size.width / 3,
+            key: ValueKey(i),
             decoration:
                 BoxDecoration(color: i.isOdd ? Colors.black26 : Colors.black38),
             child: Center(

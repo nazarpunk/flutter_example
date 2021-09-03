@@ -1,148 +1,25 @@
+// Copyright 2014 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show precisionErrorTolerance;
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/gestures.dart' show DragStartBehavior;
-import 'package:flutter/foundation.dart' show precisionErrorTolerance;
 
-/// A controller for [SliderView].
-///
-/// A page controller lets you manipulate which page is visible in a [SliderView].
-/// In addition to being able to control the pixel offset of the content inside
-/// the [SliderView], a [SliderController] also lets you control the offset in terms
-/// of pages, which are increments of the viewport size.
-///
-/// See also:
-///
-///  * [SliderView], which is the widget this object controls.
-///
-/// {@tool snippet}
-///
-/// This widget introduces a [MaterialApp], [Scaffold] and [SliderView] with two pages
-/// using the default constructor. Both pages contain an [ElevatedButton] allowing you
-/// to animate the [SliderView] using a [SliderController].
-///
-/// ```dart
-/// class MyPageView extends StatefulWidget {
-///   const MyPageView({Key? key}) : super(key: key);
-///
-///   @override
-///   _MyPageViewState createState() => _MyPageViewState();
-/// }
-///
-/// class _MyPageViewState extends State<MyPageView> {
-///   final PageController _pageController = PageController();
-///
-///   @override
-///   void dispose() {
-///     _pageController.dispose();
-///     super.dispose();
-///   }
-///
-///   @override
-///   Widget build(BuildContext context) {
-///     return MaterialApp(
-///       home: Scaffold(
-///         body: PageView(
-///           controller: _pageController,
-///           children: <Widget>[
-///             Container(
-///               color: Colors.red,
-///               child: Center(
-///                 child: ElevatedButton(
-///                   onPressed: () {
-///                     if (_pageController.hasClients) {
-///                       _pageController.animateToPage(
-///                         1,
-///                         duration: const Duration(milliseconds: 400),
-///                         curve: Curves.easeInOut,
-///                       );
-///                     }
-///                   },
-///                   child: const Text('Next'),
-///                 ),
-///               ),
-///             ),
-///             Container(
-///               color: Colors.blue,
-///               child: Center(
-///                 child: ElevatedButton(
-///                   onPressed: () {
-///                     if (_pageController.hasClients) {
-///                       _pageController.animateToPage(
-///                         0,
-///                         duration: const Duration(milliseconds: 400),
-///                         curve: Curves.easeInOut,
-///                       );
-///                     }
-///                   },
-///                   child: const Text('Previous'),
-///                 ),
-///               ),
-///             ),
-///           ],
-///         ),
-///       ),
-///     );
-///   }
-/// }
-///
-/// ```
-/// {@end-tool}
-/// [PageController]
 class SliderController extends ScrollController {
-  /// Creates a page controller.
-  ///
-  /// The [initialPage], [keepPage], and [viewportFraction] arguments must not be null.
   SliderController({
     this.initialPage = 0,
     this.keepPage = true,
     this.viewportFraction = 1.0,
   }) : assert(viewportFraction > 0.0);
 
-  /// The page to show when first creating the [SliderView].
   final int initialPage;
-
-  /// Save the current [page] with [PageStorage] and restore it if
-  /// this controller's scrollable is recreated.
-  ///
-  /// If this property is set to false, the current [page] is never saved
-  /// and [initialPage] is always used to initialize the scroll offset.
-  /// If true (the default), the initial page is used the first time the
-  /// controller's scrollable is created, since there's isn't a page to
-  /// restore yet. Subsequently the saved page is restored and
-  /// [initialPage] is ignored.
-  ///
-  /// See also:
-  ///
-  ///  * [PageStorageKey], which should be used when more than one
-  ///    scrollable appears in the same route, to distinguish the [PageStorage]
-  ///    locations used to save scroll offsets.
   final bool keepPage;
-
-  /// The fraction of the viewport that each page should occupy.
-  ///
-  /// Defaults to 1.0, which means each page fills the viewport in the scrolling
-  /// direction.
   final double viewportFraction;
 
-  /// The current page displayed in the controlled [SliderView].
-  ///
-  /// There are circumstances that this [SliderController] can't know the current
-  /// page. Reading [page] will throw an [AssertionError] in the following cases:
-  ///
-  /// 1. No [SliderView] is currently using this [SliderController]. Once a
-  /// [SliderView] starts using this [SliderController], the new [page]
-  /// position will be derived:
-  ///
-  ///   * First, based on the attached [SliderView]'s [BuildContext] and the
-  ///     position saved at that context's [PageStorage] if [keepPage] is true.
-  ///   * Second, from the [SliderController]'s [initialPage].
-  ///
-  /// 2. More than one [SliderView] using the same [SliderController].
-  ///
-  /// The [hasClients] property can be used to check if a [SliderView] is attached
-  /// prior to accessing [page].
   double? get page {
     assert(
       positions.isNotEmpty,
@@ -157,12 +34,6 @@ class SliderController extends ScrollController {
     return position.page;
   }
 
-  /// Animates the controlled [SliderView] from the current page to the given page.
-  ///
-  /// The animation lasts for the given duration and follows the given curve.
-  /// The returned [Future] resolves when the animation completes.
-  ///
-  /// The `duration` and `curve` arguments must not be null.
   Future<void> animateToPage(
     int page, {
     required Duration duration,
@@ -176,21 +47,11 @@ class SliderController extends ScrollController {
     );
   }
 
-  /// Changes which page is displayed in the controlled [SliderView].
-  ///
-  /// Jumps the page position from its current value to the given value,
-  /// without animation, and without checking if the new value is in range.
   void jumpToPage(int page) {
     final _SliderPosition position = this.position as _SliderPosition;
     position.jumpTo(position.getPixelsFromPage(page.toDouble()));
   }
 
-  /// Animates the controlled [SliderView] to the next page.
-  ///
-  /// The animation lasts for the given duration and follows the given curve.
-  /// The returned [Future] resolves when the animation completes.
-  ///
-  /// The `duration` and `curve` arguments must not be null.
   Future<void> nextPage({required Duration duration, required Curve curve}) =>
       animateToPage(page!.round() + 1, duration: duration, curve: curve);
 
@@ -227,9 +88,9 @@ class SliderController extends ScrollController {
 ///
 /// The metrics are available on [ScrollNotification]s generated from
 /// [SliderView]s.
-class PageMetrics extends FixedScrollMetrics {
+class SliderMetrics extends FixedScrollMetrics {
   /// Creates an immutable snapshot of values associated with a [SliderView].
-  PageMetrics({
+  SliderMetrics({
     required double? minScrollExtent,
     required double? maxScrollExtent,
     required double? pixels,
@@ -245,7 +106,7 @@ class PageMetrics extends FixedScrollMetrics {
         );
 
   @override
-  PageMetrics copyWith({
+  SliderMetrics copyWith({
     double? minScrollExtent,
     double? maxScrollExtent,
     double? pixels,
@@ -253,7 +114,7 @@ class PageMetrics extends FixedScrollMetrics {
     AxisDirection? axisDirection,
     double? viewportFraction,
   }) =>
-      PageMetrics(
+      SliderMetrics(
         minScrollExtent: minScrollExtent ??
             (hasContentDimensions ? this.minScrollExtent : null),
         maxScrollExtent: maxScrollExtent ??
@@ -277,7 +138,7 @@ class PageMetrics extends FixedScrollMetrics {
 }
 
 class _SliderPosition extends ScrollPositionWithSingleContext
-    implements PageMetrics {
+    implements SliderMetrics {
   _SliderPosition({
     required ScrollPhysics physics,
     required ScrollContext context,
@@ -355,10 +216,16 @@ class _SliderPosition extends ScrollPositionWithSingleContext
       page * viewportDimension * viewportFraction + _initialPageOffset;
 
   @override
-  double? get page => !hasPixels
-      ? null
-      : getPageFromPixels(
-          pixels.clamp(minScrollExtent, maxScrollExtent), viewportDimension);
+  double? get page {
+    assert(
+      !hasPixels || hasContentDimensions,
+      'Page value is only available after content dimensions are established.',
+    );
+    return !hasPixels || !hasContentDimensions
+        ? null
+        : getPageFromPixels(
+            pixels.clamp(minScrollExtent, maxScrollExtent), viewportDimension);
+  }
 
   @override
   void saveScrollOffset() {
@@ -422,7 +289,7 @@ class _SliderPosition extends ScrollPositionWithSingleContext
   }
 
   @override
-  PageMetrics copyWith({
+  SliderMetrics copyWith({
     double? minScrollExtent,
     double? maxScrollExtent,
     double? pixels,
@@ -430,7 +297,7 @@ class _SliderPosition extends ScrollPositionWithSingleContext
     AxisDirection? axisDirection,
     double? viewportFraction,
   }) =>
-      PageMetrics(
+      SliderMetrics(
         minScrollExtent: minScrollExtent ??
             (hasContentDimensions ? this.minScrollExtent : null),
         maxScrollExtent: maxScrollExtent ??
@@ -617,6 +484,7 @@ class SliderView extends StatefulWidget {
     this.restorationId,
     this.clipBehavior = Clip.hardEdge,
     this.scrollBehavior,
+    this.padEnds = true,
   })  : controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildListDelegate(children),
         super(key: key);
@@ -654,95 +522,12 @@ class SliderView extends StatefulWidget {
     this.restorationId,
     this.clipBehavior = Clip.hardEdge,
     this.scrollBehavior,
+    this.padEnds = true,
   })  : controller = controller ?? _defaultPageController,
         childrenDelegate =
             SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
         super(key: key);
 
-  /// Creates a scrollable list that works page by page with a custom child
-  /// model.
-  ///
-  /// {@tool snippet}
-  ///
-  /// This [SliderView] uses a custom [SliverChildBuilderDelegate] to support child
-  /// reordering.
-  ///
-  /// ```dart
-  /// class MyPageView extends StatefulWidget {
-  ///   const MyPageView({Key? key}) : super(key: key);
-  ///
-  ///   @override
-  ///   _MyPageViewState createState() => _MyPageViewState();
-  /// }
-  ///
-  /// class _MyPageViewState extends State<MyPageView> {
-  ///   List<String> items = <String>['1', '2', '3', '4', '5'];
-  ///
-  ///   void _reverse() {
-  ///     setState(() {
-  ///       items = items.reversed.toList();
-  ///     });
-  ///   }
-  ///
-  ///   @override
-  ///   Widget build(BuildContext context) {
-  ///     return Scaffold(
-  ///       body: SafeArea(
-  ///         child: PageView.custom(
-  ///           childrenDelegate: SliverChildBuilderDelegate(
-  ///             (BuildContext context, int index) {
-  ///               return KeepAlive(
-  ///                 data: items[index],
-  ///                 key: ValueKey<String>(items[index]),
-  ///               );
-  ///             },
-  ///             childCount: items.length,
-  ///             findChildIndexCallback: (Key key) {
-  ///               final ValueKey<String> valueKey = key as ValueKey<String>;
-  ///               final String data = valueKey.value;
-  ///               return items.indexOf(data);
-  ///             }
-  ///           ),
-  ///         ),
-  ///       ),
-  ///       bottomNavigationBar: BottomAppBar(
-  ///         child: Row(
-  ///           mainAxisAlignment: MainAxisAlignment.center,
-  ///           children: <Widget>[
-  ///             TextButton(
-  ///               onPressed: () => _reverse(),
-  ///               child: const Text('Reverse items'),
-  ///             ),
-  ///           ],
-  ///         ),
-  ///       ),
-  ///     );
-  ///   }
-  /// }
-  ///
-  /// class KeepAlive extends StatefulWidget {
-  ///   const KeepAlive({Key? key, required this.data}) : super(key: key);
-  ///
-  ///   final String data;
-  ///
-  ///   @override
-  ///   _KeepAliveState createState() => _KeepAliveState();
-  /// }
-  ///
-  /// class _KeepAliveState extends State<KeepAlive> with AutomaticKeepAliveClientMixin{
-  ///   @override
-  ///   bool get wantKeepAlive => true;
-  ///
-  ///   @override
-  ///   Widget build(BuildContext context) {
-  ///     super.build(context);
-  ///     return Text(widget.data);
-  ///   }
-  /// }
-  /// ```
-  /// {@end-tool}
-  ///
-  /// {@macro flutter.widgets.PageView.allowImplicitScrolling}
   SliderView.custom({
     required this.childrenDelegate,
     Key? key,
@@ -757,28 +542,12 @@ class SliderView extends StatefulWidget {
     this.restorationId,
     this.clipBehavior = Clip.hardEdge,
     this.scrollBehavior,
+    this.padEnds = true,
   })  : controller = controller ?? _defaultPageController,
         super(key: key);
 
-  /// Controls whether the widget's pages will respond to
-  /// [RenderObject.showOnScreen], which will allow for implicit accessibility
-  /// scrolling.
-  ///
-  /// With this flag set to false, when accessibility focus reaches the end of
-  /// the current page and the user attempts to move it to the next element, the
-  /// focus will traverse to the next widget outside of the page view.
-  ///
-  /// With this flag set to true, when accessibility focus reaches the end of
-  /// the current page and user attempts to move it to the next element, focus
-  /// will traverse to the next page in the page view.
   final bool allowImplicitScrolling;
-
-  /// {@macro flutter.widgets.scrollable.restorationId}
   final String? restorationId;
-
-  /// The axis along which the page view scrolls.
-  ///
-  /// Defaults to [Axis.horizontal].
   final Axis scrollDirection;
 
   /// Whether the page view scrolls in the reading direction.
@@ -815,6 +584,10 @@ class SliderView extends StatefulWidget {
   final ScrollPhysics? physics;
 
   /// Set to false to disable page snapping, useful for custom scroll behavior.
+  ///
+  /// If the [padEnds] is false and [SliderController.viewportFraction] < 1.0,
+  /// the page will snap to the beginning of the viewport; otherwise, the page
+  /// will snap to the center of the viewport.
   final bool pageSnapping;
 
   /// Called whenever the page in the center of the viewport changes.
@@ -847,8 +620,19 @@ class SliderView extends StatefulWidget {
   /// modified by default to not apply a [Scrollbar].
   final ScrollBehavior? scrollBehavior;
 
+  /// Whether to add padding to both ends of the list.
+  ///
+  /// If this is set to true and [SliderController.viewportFraction] < 1.0, padding will be added
+  /// such that the first and last child slivers will be in the center of
+  /// the viewport when scrolled all the way to the start or end, respectively.
+  ///
+  /// If [SliderController.viewportFraction] >= 1.0, this property has no effect.
+  ///
+  /// This property defaults to true and must not be null.
+  final bool padEnds;
+
   @override
-  _SliderViewState createState() => _SliderViewState();
+  State<SliderView> createState() => _SliderViewState();
 }
 
 class _SliderViewState extends State<SliderView> {
@@ -892,7 +676,7 @@ class _SliderViewState extends State<SliderView> {
         if (notification.depth == 0 &&
             widget.onPageChanged != null &&
             notification is ScrollUpdateNotification) {
-          final PageMetrics metrics = notification.metrics as PageMetrics;
+          final SliderMetrics metrics = notification.metrics as SliderMetrics;
           final int currentPage = metrics.page!.round();
           if (currentPage != _lastReportedPage) {
             _lastReportedPage = currentPage;
@@ -919,6 +703,7 @@ class _SliderViewState extends State<SliderView> {
             SliverFillViewport(
               viewportFraction: widget.controller.viewportFraction,
               delegate: widget.childrenDelegate,
+              padEnds: widget.padEnds,
             ),
           ],
         ),
