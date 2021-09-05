@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'physics.dart'; // ignore: unused_import
-import 'reorderable_view.dart'; // ignore: unused_import
-import 'slider_view.dart'; // ignore: unused_import
+import 'slider/controller.dart';
+import 'slider/view.dart'; // ignore: unused_import
+import 'slider/view_reorderable.dart'; // ignore: unused_import
 
 void main() => runApp(const MyApp());
 
@@ -38,8 +38,6 @@ class _SliderWidgetState extends State<SliderWidget> {
   Widget build(BuildContext context) {
     final SliderController controller =
         SliderController(viewportFraction: 1 / 3);
-    // SliderReorderableListView
-    // SliderView
     return Stack(
       children: [
         NotificationListener<ScrollNotification>(
@@ -90,11 +88,9 @@ class _SliderWidgetState extends State<SliderWidget> {
                 _debugText = _d;
               });
             }
-
             return false;
           },
-          child: SliderView(
-            //physics: const SliderScrollPhysics(itemsCount: 3),
+          child: SliderViewReorderable(
             controller: controller,
             onReorder: (oldIndex, newIndex) {
               setState(() {
@@ -104,7 +100,6 @@ class _SliderWidgetState extends State<SliderWidget> {
                 items.insert(newIndex, items.removeAt(oldIndex));
               });
             },
-
             children: [
               for (var i = 0; i < items.length; i++)
                 Container(
