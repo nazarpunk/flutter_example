@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 
-class SliderScrollPhysics extends ScrollPhysics {
-  const SliderScrollPhysics({required this.itemsCount, ScrollPhysics? parent})
+class SliderScrollPhysicsOld extends ScrollPhysics {
+  const SliderScrollPhysicsOld(
+      {required this.itemsCount, ScrollPhysics? parent})
       : super(parent: parent);
 
   @override
-  SliderScrollPhysics applyTo(ScrollPhysics? ancestor) => SliderScrollPhysics(
-      parent: buildParent(ancestor), itemsCount: itemsCount);
+  SliderScrollPhysicsOld applyTo(ScrollPhysics? ancestor) =>
+      SliderScrollPhysicsOld(
+          parent: buildParent(ancestor), itemsCount: itemsCount);
 
   @override
   double get maxFlingVelocity => 1400;
@@ -44,9 +46,9 @@ class SliderScrollPhysics extends ScrollPhysics {
         math.exp(1.2 * math.log(.6 * velocity.abs() / 800)) *
         velocity.sign;
 
-    final double _itemSize = position.viewportDimension / itemsCount;
-    final int _itemCurrent = ((position.pixels + distance) / _itemSize).round();
-    double _end = _itemCurrent * _itemSize;
+    final double itemSize = position.viewportDimension / itemsCount;
+    final int itemPosition = ((position.pixels + distance) / itemSize).round();
+    double _end = itemPosition * itemSize;
 
     if (position.outOfRange) {
       if (position.pixels > position.maxScrollExtent) {

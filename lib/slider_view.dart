@@ -84,12 +84,7 @@ class SliderController extends ScrollController {
   }
 }
 
-/// Metrics for a [SliderView].
-///
-/// The metrics are available on [ScrollNotification]s generated from
-/// [SliderView]s.
 class SliderMetrics extends FixedScrollMetrics {
-  /// Creates an immutable snapshot of values associated with a [SliderView].
   SliderMetrics({
     required double? minScrollExtent,
     required double? maxScrollExtent,
@@ -126,14 +121,10 @@ class SliderMetrics extends FixedScrollMetrics {
         viewportFraction: viewportFraction ?? this.viewportFraction,
       );
 
-  /// The current page displayed in the [SliderView].
   double? get page =>
       math.max(0, pixels.clamp(minScrollExtent, maxScrollExtent)) /
       math.max(1.0, viewportDimension * viewportFraction);
 
-  /// The fraction of the viewport that each page occupies.
-  ///
-  /// Used to compute [page] from the current [pixels].
   final double viewportFraction;
 }
 
@@ -193,12 +184,6 @@ class _SliderPosition extends ScrollPositionWithSingleContext
     }
   }
 
-  // The amount of offset that will be added to [minScrollExtent] and subtracted
-  // from [maxScrollExtent], such that every page will properly snap to the center
-  // of the viewport when viewportFraction is greater than 1.
-  //
-  // The value is 0 if viewportFraction is less than or equal to 1, larger than 0
-  // otherwise.
   double get _initialPageOffset =>
       math.max(0, viewportDimension * (viewportFraction - 1) / 2);
 
@@ -212,8 +197,10 @@ class _SliderPosition extends ScrollPositionWithSingleContext
     return actual;
   }
 
-  double getPixelsFromPage(double page) =>
-      page * viewportDimension * viewportFraction + _initialPageOffset;
+  double getPixelsFromPage(double page) {
+    final double itemSize = viewportDimension * viewportFraction;
+    return page * itemSize + _initialPageOffset;
+  }
 
   @override
   double? get page {
@@ -327,22 +314,36 @@ class _ForceImplicitScrollPhysics extends ScrollPhysics {
   final bool allowImplicitScrolling;
 }
 
-/// Scroll physics used by a [SliderView].
-///
-/// These physics cause the page view to snap to page boundaries.
-///
-/// See also:
-///
-///  * [ScrollPhysics], the base class which defines the API for scrolling
-///    physics.
-///  * [SliderView.physics], which can override the physics used by a page view.
-class PageScrollPhysics extends ScrollPhysics {
-  /// Creates physics for a [SliderView].
-  const PageScrollPhysics({ScrollPhysics? parent}) : super(parent: parent);
+class SliderScrollPhysics extends ScrollPhysics {
+  const SliderScrollPhysics({ScrollPhysics? parent}) : super(parent: parent);
 
   @override
-  PageScrollPhysics applyTo(ScrollPhysics? ancestor) =>
-      PageScrollPhysics(parent: buildParent(ancestor));
+  SliderScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      SliderScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  double applyBoundaryConditions(ScrollMetrics position, double value) {
+    if (position.pixels <= position.minScrollExtent &&
+        value < position.pixels) {
+      return value - position.pixels;
+    }
+    if (position.pixels >= position.maxScrollExtent &&
+        value > position.pixels) {
+      return value - position.pixels;
+    }
+    if (position.pixels > position.minScrollExtent &&
+        value < position.minScrollExtent) {
+      return value - position.minScrollExtent;
+    }
+    if (position.pixels < position.maxScrollExtent &&
+        value > position.maxScrollExtent) {
+      return value - position.maxScrollExtent;
+    }
+    return 0;
+  }
+
+  @override
+  double get maxFlingVelocity => 1400;
 
   double _getPage(ScrollMetrics position) {
     if (position is _SliderPosition) {
@@ -372,105 +373,45 @@ class PageScrollPhysics extends ScrollPhysics {
   @override
   Simulation? createBallisticSimulation(
       ScrollMetrics position, double velocity) {
-    // If we're out of range and not headed back in range, defer to the parent
-    // ballistics, which should put us back in range at a page boundary.
     if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
         (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
       return super.createBallisticSimulation(position, velocity);
     }
     final Tolerance tolerance = this.tolerance;
-    final double target = _getTargetPixels(position, tolerance, velocity);
-    if (target != position.pixels) {
-      return ScrollSpringSimulation(spring, position.pixels, target, velocity,
-          tolerance: tolerance);
+    double target = _getTargetPixels(position, tolerance, velocity);
+
+    // new physics
+    final double distance = 200 *
+        math.exp(1.2 * math.log(.6 * velocity.abs() / 800)) *
+        velocity.sign;
+    const int itemsCount = 3;
+    final double itemSize = position.viewportDimension / itemsCount;
+    final int itemPosition = ((position.pixels + distance) / itemSize).round();
+    target = itemPosition * itemSize;
+
+    if (target == position.pixels) {
+      return null;
     }
-    return null;
+
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      target,
+      velocity,
+      tolerance: tolerance,
+    );
   }
 
   @override
   bool get allowImplicitScrolling => false;
 }
 
-// Having this global (mutable) page controller is a bit of a hack. We need it
-// to plumb in the factory for _PagePosition, but it will end up accumulating
-// a large list of scroll positions. As long as you don't try to actually
-// control the scroll positions, everything should be fine.
 final SliderController _defaultPageController = SliderController();
-const PageScrollPhysics _kPagePhysics = PageScrollPhysics();
+const SliderScrollPhysics _kPagePhysics = SliderScrollPhysics();
 
-/// A scrollable list that works page by page.
-///
-/// Each child of a page view is forced to be the same size as the viewport.
-///
-/// You can use a [SliderController] to control which page is visible in the view.
-/// In addition to being able to control the pixel offset of the content inside
-/// the [SliderView], a [SliderController] also lets you control the offset in terms
-/// of pages, which are increments of the viewport size.
-///
-/// The [SliderController] can also be used to control the
-/// [SliderController.initialPage], which determines which page is shown when the
-/// [SliderView] is first constructed, and the [SliderController.viewportFraction],
-/// which determines the size of the pages as a fraction of the viewport size.
-///
-/// {@youtube 560 315 https://www.youtube.com/watch?v=J1gE9xvph-A}
-///
-/// {@tool dartpad --template=stateless_widget_scaffold}
-///
-/// Here is an example of [SliderView]. It creates a centered [Text] in each of the three pages
-/// which scroll horizontally.
-///
-/// ```dart
-///  Widget build(BuildContext context) {
-///    final PageController controller = PageController(initialPage: 0);
-///    return PageView(
-///      /// [PageView.scrollDirection] defaults to [Axis.horizontal].
-///      /// Use [Axis.vertical] to scroll vertically.
-///      scrollDirection: Axis.horizontal,
-///      controller: controller,
-///      children: const <Widget>[
-///        Center(
-///          child: Text('First Page'),
-///        ),
-///        Center(
-///          child: Text('Second Page'),
-///        ),
-///        Center(
-///          child: Text('Third Page'),
-///        )
-///      ],
-///    );
-///  }
-/// ```
-/// {@end-tool}
-///
-/// See also:
-///
-///  * [SliderController], which controls which page is visible in the view.
-///  * [SingleChildScrollView], when you need to make a single child scrollable.
-///  * [ListView], for a scrollable list of boxes.
-///  * [GridView], for a scrollable grid of boxes.
-///  * [ScrollNotification] and [NotificationListener], which can be used to watch
-///    the scroll position without using a [ScrollController].
 class SliderView extends StatefulWidget {
-  /// Creates a scrollable list that works page by page from an explicit [List]
-  /// of widgets.
-  ///
-  /// This constructor is appropriate for page views with a small number of
-  /// children because constructing the [List] requires doing work for every
-  /// child that could possibly be displayed in the page view, instead of just
-  /// those children that are actually visible.
-  ///
-  /// Like other widgets in the framework, this widget expects that
-  /// the [children] list will not be mutated after it has been passed in here.
-  /// See the documentation at [SliverChildListDelegate.children] for more details.
-  ///
-  /// {@template flutter.widgets.PageView.allowImplicitScrolling}
-  /// The [allowImplicitScrolling] parameter must not be null. If true, the
-  /// [SliderView] will participate in accessibility scrolling more like a
-  /// [ListView], where implicit scroll actions will move to the next page
-  /// rather than into the contents of the [SliderView].
-  /// {@endtemplate}
   SliderView({
+    required this.onReorder,
     Key? key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
@@ -484,31 +425,14 @@ class SliderView extends StatefulWidget {
     this.restorationId,
     this.clipBehavior = Clip.hardEdge,
     this.scrollBehavior,
-    this.padEnds = true,
+    this.padEnds = false,
   })  : controller = controller ?? _defaultPageController,
         childrenDelegate = SliverChildListDelegate(children),
         super(key: key);
 
-  /// Creates a scrollable list that works page by page using widgets that are
-  /// created on demand.
-  ///
-  /// This constructor is appropriate for page views with a large (or infinite)
-  /// number of children because the builder is called only for those children
-  /// that are actually visible.
-  ///
-  /// Providing a non-null [itemCount] lets the [SliderView] compute the maximum
-  /// scroll extent.
-  ///
-  /// [itemBuilder] will be called only with indices greater than or equal to
-  /// zero and less than [itemCount].
-  ///
-  /// [PageView.builder] by default does not support child reordering. If
-  /// you are planning to change child order at a later time, consider using
-  /// [SliderView] or [PageView.custom].
-  ///
-  /// {@macro flutter.widgets.PageView.allowImplicitScrolling}
   SliderView.builder({
     required IndexedWidgetBuilder itemBuilder,
+    required this.onReorder,
     Key? key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
@@ -530,6 +454,7 @@ class SliderView extends StatefulWidget {
 
   SliderView.custom({
     required this.childrenDelegate,
+    required this.onReorder,
     Key? key,
     this.scrollDirection = Axis.horizontal,
     this.reverse = false,
@@ -546,89 +471,19 @@ class SliderView extends StatefulWidget {
   })  : controller = controller ?? _defaultPageController,
         super(key: key);
 
+  final ReorderCallback onReorder;
   final bool allowImplicitScrolling;
   final String? restorationId;
   final Axis scrollDirection;
-
-  /// Whether the page view scrolls in the reading direction.
-  ///
-  /// For example, if the reading direction is left-to-right and
-  /// [scrollDirection] is [Axis.horizontal], then the page view scrolls from
-  /// left to right when [reverse] is false and from right to left when
-  /// [reverse] is true.
-  ///
-  /// Similarly, if [scrollDirection] is [Axis.vertical], then the page view
-  /// scrolls from top to bottom when [reverse] is false and from bottom to top
-  /// when [reverse] is true.
-  ///
-  /// Defaults to false.
   final bool reverse;
-
-  /// An object that can be used to control the position to which this page
-  /// view is scrolled.
   final SliderController controller;
-
-  /// How the page view should respond to user input.
-  ///
-  /// For example, determines how the page view continues to animate after the
-  /// user stops dragging the page view.
-  ///
-  /// The physics are modified to snap to page boundaries using
-  /// [PageScrollPhysics] prior to being used.
-  ///
-  /// If an explicit [ScrollBehavior] is provided to [scrollBehavior], the
-  /// [ScrollPhysics] provided by that behavior will take precedence after
-  /// [physics].
-  ///
-  /// Defaults to matching platform conventions.
   final ScrollPhysics? physics;
-
-  /// Set to false to disable page snapping, useful for custom scroll behavior.
-  ///
-  /// If the [padEnds] is false and [SliderController.viewportFraction] < 1.0,
-  /// the page will snap to the beginning of the viewport; otherwise, the page
-  /// will snap to the center of the viewport.
   final bool pageSnapping;
-
-  /// Called whenever the page in the center of the viewport changes.
   final ValueChanged<int>? onPageChanged;
-
-  /// A delegate that provides the children for the [SliderView].
-  ///
-  /// The [PageView.custom] constructor lets you specify this delegate
-  /// explicitly. The [SliderView] and [PageView.builder] constructors create a
-  /// [childrenDelegate] that wraps the given [List] and [IndexedWidgetBuilder],
-  /// respectively.
   final SliverChildDelegate childrenDelegate;
-
-  /// {@macro flutter.widgets.scrollable.dragStartBehavior}
   final DragStartBehavior dragStartBehavior;
-
-  /// {@macro flutter.material.Material.clipBehavior}
-  ///
-  /// Defaults to [Clip.hardEdge].
   final Clip clipBehavior;
-
-  /// {@macro flutter.widgets.shadow.scrollBehavior}
-  ///
-  /// [ScrollBehavior]s also provide [ScrollPhysics]. If an explicit
-  /// [ScrollPhysics] is provided in [physics], it will take precedence,
-  /// followed by [scrollBehavior], and then the inherited ancestor
-  /// [ScrollBehavior].
-  ///
-  /// The [ScrollBehavior] of the inherited [ScrollConfiguration] will be
-  /// modified by default to not apply a [Scrollbar].
   final ScrollBehavior? scrollBehavior;
-
-  /// Whether to add padding to both ends of the list.
-  ///
-  /// If this is set to true and [SliderController.viewportFraction] < 1.0, padding will be added
-  /// such that the first and last child slivers will be in the center of
-  /// the viewport when scrolled all the way to the start or end, respectively.
-  ///
-  /// If [SliderController.viewportFraction] >= 1.0, this property has no effect.
-  ///
-  /// This property defaults to true and must not be null.
   final bool padEnds;
 
   @override
@@ -692,7 +547,8 @@ class _SliderViewState extends State<SliderView> {
         physics: physics,
         restorationId: widget.restorationId,
         scrollBehavior: widget.scrollBehavior ??
-            ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            ScrollConfiguration.of(context)
+                .copyWith(scrollbars: false, overscroll: false),
         viewportBuilder: (context, position) => Viewport(
           cacheExtent: widget.allowImplicitScrolling ? 1.0 : 0.0,
           cacheExtentStyle: CacheExtentStyle.viewport,
