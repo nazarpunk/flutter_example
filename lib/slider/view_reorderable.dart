@@ -1,25 +1,20 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'controller.dart';
+import 'list_reorderable.dart';
+import 'metrics.dart';
 import 'physics.dart';
 
+/// [ReorderableListView]
 class SliderViewReorderable extends StatefulWidget {
   SliderViewReorderable({
     required List<Widget> children,
+    required this.controller,
     required this.onReorder,
     Key? key,
-    this.proxyDecorator,
-    this.scrollDirection = Axis.horizontal,
-    this.controller,
-    this.primary,
-    this.shrinkWrap = false,
-    this.anchor = 0.0,
-    this.cacheExtent,
-    this.dragStartBehavior = DragStartBehavior.start,
-    this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
     this.restorationId,
-    this.clipBehavior = Clip.hardEdge,
+    this.onPageChanged,
   })  : assert(
           children.every((w) => w.key != null),
           'All children of this widget must have a key.',
@@ -28,45 +23,26 @@ class SliderViewReorderable extends StatefulWidget {
         itemCount = children.length,
         super(key: key);
 
-  const SliderViewReorderable.builder({
-    required this.itemBuilder,
-    required this.itemCount,
-    required this.onReorder,
-    Key? key,
-    this.proxyDecorator,
-    this.scrollDirection = Axis.vertical,
-    this.controller,
-    this.primary,
-    this.shrinkWrap = false,
-    this.anchor = 0.0,
-    this.cacheExtent,
-    this.dragStartBehavior = DragStartBehavior.start,
-    this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
-    this.restorationId,
-    this.clipBehavior = Clip.hardEdge,
-  })  : assert(itemCount >= 0),
-        super(key: key);
-
+  final ReorderCallback onReorder;
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
-  final ReorderCallback onReorder;
-  final ReorderItemProxyDecorator? proxyDecorator;
-  final Axis scrollDirection;
-  final ScrollController? controller;
-  final bool? primary;
-  final bool shrinkWrap;
-  final double anchor;
-  final double? cacheExtent;
-  final DragStartBehavior dragStartBehavior;
-  final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
   final String? restorationId;
-  final Clip clipBehavior;
+  final ValueChanged<int>? onPageChanged;
+  final SliderController controller;
 
   @override
   _SliderViewReorderableState createState() => _SliderViewReorderableState();
 }
 
 class _SliderViewReorderableState extends State<SliderViewReorderable> {
+  int _lastReportedPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastReportedPage = widget.controller.initialPage;
+  }
+
   Widget _wrapWithSemantics(Widget child, int index) {
     void reorder(int startIndex, int endIndex) {
       if (startIndex != endIndex) {
@@ -90,22 +66,18 @@ class _SliderViewReorderableState extends State<SliderViewReorderable> {
               CustomSemanticsAction(label: localizations.reorderItemToStart)] =
           moveToStart;
       String reorderItemBefore = localizations.reorderItemUp;
-      if (widget.scrollDirection == Axis.horizontal) {
-        reorderItemBefore = Directionality.of(context) == TextDirection.ltr
-            ? localizations.reorderItemLeft
-            : localizations.reorderItemRight;
-      }
+      reorderItemBefore = Directionality.of(context) == TextDirection.ltr
+          ? localizations.reorderItemLeft
+          : localizations.reorderItemRight;
       semanticsActions[CustomSemanticsAction(label: reorderItemBefore)] =
           moveBefore;
     }
 
     if (index < widget.itemCount - 1) {
       String reorderItemAfter = localizations.reorderItemDown;
-      if (widget.scrollDirection == Axis.horizontal) {
-        reorderItemAfter = Directionality.of(context) == TextDirection.ltr
-            ? localizations.reorderItemRight
-            : localizations.reorderItemLeft;
-      }
+      reorderItemAfter = Directionality.of(context) == TextDirection.ltr
+          ? localizations.reorderItemRight
+          : localizations.reorderItemLeft;
       semanticsActions[CustomSemanticsAction(label: reorderItemAfter)] =
           moveAfter;
       semanticsActions[
@@ -136,7 +108,7 @@ class _SliderViewReorderableState extends State<SliderViewReorderable> {
     final Key itemGlobalKey =
         _ReorderableListViewChildGlobalKey(item.key!, this);
 
-    return ReorderableDelayedDragStartListener(
+    return SliderReorderableDelayedDragStartListener(
       key: itemGlobalKey,
       index: index,
       child: itemWithSemantics,
@@ -162,30 +134,42 @@ class _SliderViewReorderableState extends State<SliderViewReorderable> {
       );
 
   @override
+
+  /// [SliverReorderableList]
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));
     assert(debugCheckHasOverlay(context));
 
-    return CustomScrollView(
-      scrollDirection: widget.scrollDirection,
-      controller: widget.controller,
-      primary: widget.primary,
-      physics: const SliderPhysics(),
-      shrinkWrap: widget.shrinkWrap,
-      anchor: widget.anchor,
-      cacheExtent: widget.cacheExtent,
-      dragStartBehavior: widget.dragStartBehavior,
-      keyboardDismissBehavior: widget.keyboardDismissBehavior,
-      restorationId: widget.restorationId,
-      clipBehavior: widget.clipBehavior,
-      slivers: [
-        SliverReorderableList(
-          itemBuilder: _itemBuilder,
-          itemCount: widget.itemCount,
-          onReorder: widget.onReorder,
-          proxyDecorator: widget.proxyDecorator ?? _proxyDecorator,
-        )
-      ],
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.depth == 0 &&
+            widget.onPageChanged != null &&
+            notification is ScrollUpdateNotification) {
+          final SliderMetrics metrics = notification.metrics as SliderMetrics;
+          final int currentPage = metrics.page!.round();
+          if (currentPage != _lastReportedPage) {
+            _lastReportedPage = currentPage;
+            widget.onPageChanged!(currentPage);
+          }
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        scrollDirection: Axis.horizontal,
+        controller: widget.controller,
+        physics: const SliderPhysics(),
+        restorationId: widget.restorationId,
+        scrollBehavior: ScrollConfiguration.of(context)
+            .copyWith(scrollbars: false, overscroll: false),
+        slivers: [
+          SliderSliverReorderableList(
+            itemBuilder: _itemBuilder,
+            itemCount: widget.itemCount,
+            onReorder: widget.onReorder,
+            proxyDecorator: _proxyDecorator,
+          )
+        ],
+      ),
     );
   }
 }

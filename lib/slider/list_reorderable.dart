@@ -16,19 +16,10 @@ class SliderReorderableList extends StatefulWidget {
     required this.onReorder,
     Key? key,
     this.proxyDecorator,
-    this.padding,
-    this.scrollDirection = Axis.vertical,
-    this.reverse = false,
     this.controller,
     this.primary,
     this.physics,
-    this.shrinkWrap = false,
-    this.anchor = 0.0,
-    this.cacheExtent,
-    this.dragStartBehavior = DragStartBehavior.start,
-    this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
     this.restorationId,
-    this.clipBehavior = Clip.hardEdge,
   })  : assert(itemCount >= 0),
         super(key: key);
 
@@ -36,19 +27,10 @@ class SliderReorderableList extends StatefulWidget {
   final int itemCount;
   final SliderReorderCallback onReorder;
   final SliderReorderItemProxyDecorator? proxyDecorator;
-  final EdgeInsetsGeometry? padding;
-  final Axis scrollDirection;
-  final bool reverse;
   final ScrollController? controller;
   final bool? primary;
   final ScrollPhysics? physics;
-  final bool shrinkWrap;
-  final double anchor;
-  final double? cacheExtent;
-  final DragStartBehavior dragStartBehavior;
-  final ScrollViewKeyboardDismissBehavior keyboardDismissBehavior;
   final String? restorationId;
-  final Clip clipBehavior;
 
   static SliderReorderableListState of(BuildContext context) {
     final SliderReorderableListState? result =
@@ -83,7 +65,7 @@ class SliderReorderableList extends StatefulWidget {
 }
 
 class SliderReorderableListState extends State<SliderReorderableList> {
-  final GlobalKey<SliverReorderableListState> _sliverReorderableListKey =
+  final GlobalKey<SliderSliverReorderableListState> _sliverReorderableListKey =
       GlobalKey();
 
   void startItemDragReorder({
@@ -101,35 +83,24 @@ class SliderReorderableListState extends State<SliderReorderableList> {
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
-        scrollDirection: widget.scrollDirection,
-        reverse: widget.reverse,
         controller: widget.controller,
         primary: widget.primary,
         physics: widget.physics,
-        shrinkWrap: widget.shrinkWrap,
-        anchor: widget.anchor,
-        cacheExtent: widget.cacheExtent,
-        dragStartBehavior: widget.dragStartBehavior,
-        keyboardDismissBehavior: widget.keyboardDismissBehavior,
         restorationId: widget.restorationId,
-        clipBehavior: widget.clipBehavior,
-        slivers: <Widget>[
-          SliverPadding(
-            padding: widget.padding ?? EdgeInsets.zero,
-            sliver: SliverReorderableList(
-              key: _sliverReorderableListKey,
-              itemBuilder: widget.itemBuilder,
-              itemCount: widget.itemCount,
-              onReorder: widget.onReorder,
-              proxyDecorator: widget.proxyDecorator,
-            ),
-          ),
+        slivers: [
+          SliderSliverReorderableList(
+            key: _sliverReorderableListKey,
+            itemBuilder: widget.itemBuilder,
+            itemCount: widget.itemCount,
+            onReorder: widget.onReorder,
+            proxyDecorator: widget.proxyDecorator,
+          )
         ],
       );
 }
 
-class SliverReorderableList extends StatefulWidget {
-  const SliverReorderableList({
+class SliderSliverReorderableList extends StatefulWidget {
+  const SliderSliverReorderableList({
     required this.itemBuilder,
     required this.itemCount,
     required this.onReorder,
@@ -144,11 +115,12 @@ class SliverReorderableList extends StatefulWidget {
   final SliderReorderItemProxyDecorator? proxyDecorator;
 
   @override
-  SliverReorderableListState createState() => SliverReorderableListState();
+  SliderSliverReorderableListState createState() =>
+      SliderSliverReorderableListState();
 
-  static SliverReorderableListState of(BuildContext context) {
-    final SliverReorderableListState? result =
-        context.findAncestorStateOfType<SliverReorderableListState>();
+  static SliderSliverReorderableListState of(BuildContext context) {
+    final SliderSliverReorderableListState? result =
+        context.findAncestorStateOfType<SliderSliverReorderableListState>();
     assert(() {
       if (result == null) {
         throw FlutterError.fromParts(<DiagnosticsNode>[
@@ -172,12 +144,12 @@ class SliverReorderableList extends StatefulWidget {
     return result!;
   }
 
-  static SliverReorderableListState? maybeOf(BuildContext context) =>
-      context.findAncestorStateOfType<SliverReorderableListState>();
+  static SliderSliverReorderableListState? maybeOf(BuildContext context) =>
+      context.findAncestorStateOfType<SliderSliverReorderableListState>();
 }
 
-class SliverReorderableListState extends State<SliverReorderableList>
-    with TickerProviderStateMixin {
+class SliderSliverReorderableListState
+    extends State<SliderSliverReorderableList> with TickerProviderStateMixin {
   final Map<int, _ReorderableItemState> _items = <int, _ReorderableItemState>{};
 
   OverlayEntry? _overlayEntry;
@@ -203,7 +175,7 @@ class SliverReorderableListState extends State<SliverReorderableList>
   }
 
   @override
-  void didUpdateWidget(covariant SliverReorderableList oldWidget) {
+  void didUpdateWidget(covariant SliderSliverReorderableList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.itemCount != oldWidget.itemCount) {
       cancelReorder();
@@ -475,7 +447,7 @@ class SliverReorderableListState extends State<SliverReorderableList>
         _autoScrolling = false;
         if (_dragInfo != null) {
           _dragUpdateItems();
-          await _autoScrollIfNecessary(); // await added
+          _autoScrollIfNecessary(); // ignore: unawaited_futures
         }
       }
     }
@@ -537,7 +509,7 @@ class _ReorderableItem extends StatefulWidget {
 }
 
 class _ReorderableItemState extends State<_ReorderableItem> {
-  late SliverReorderableListState _listState;
+  late SliderSliverReorderableListState _listState;
 
   Offset _startOffset = Offset.zero;
   Offset _targetOffset = Offset.zero;
@@ -561,7 +533,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   @override
   void initState() {
-    _listState = SliverReorderableList.of(context);
+    _listState = SliderSliverReorderableList.of(context);
     _listState._registerItem(this);
     super.initState();
   }
@@ -693,8 +665,8 @@ class SliderReorderableDragStartListener extends StatelessWidget {
       ImmediateMultiDragGestureRecognizer(debugOwner: this);
 
   void _startDragging(BuildContext context, PointerDownEvent event) {
-    final SliverReorderableListState? list =
-        SliverReorderableList.maybeOf(context);
+    final SliderSliverReorderableListState? list =
+        SliderSliverReorderableList.maybeOf(context);
     list?.startItemDragReorder(
       index: index,
       event: event,
@@ -718,7 +690,10 @@ class SliderReorderableDelayedDragStartListener
 
 // ignore: avoid_private_typedef_functions
 typedef _DragItemUpdate = void Function(
-    _DragInfo item, Offset position, Offset delta);
+  _DragInfo item,
+  Offset position,
+  Offset delta,
+);
 typedef _DragItemCallback = void Function(_DragInfo item);
 
 class _DragInfo extends Drag {
@@ -754,7 +729,7 @@ class _DragInfo extends Drag {
   final SliderReorderItemProxyDecorator? proxyDecorator;
   final TickerProvider tickerProvider;
 
-  late SliverReorderableListState listState;
+  late SliderSliverReorderableListState listState;
   late int index;
   late Widget child;
   late Offset dragPosition;
@@ -839,7 +814,7 @@ class _DragItemProxy extends StatelessWidget {
     Key? key,
   }) : super(key: key);
 
-  final SliverReorderableListState listState;
+  final SliderSliverReorderableListState listState;
   final int index;
   final Widget child;
   final Offset position;
@@ -920,7 +895,7 @@ class _ReorderableItemGlobalKey extends GlobalObjectKey {
 
   final Key subKey;
   final int index;
-  final SliverReorderableListState state;
+  final SliderSliverReorderableListState state;
 
   @override
   bool operator ==(Object other) {
