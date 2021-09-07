@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'slider/controller.dart';
-import 'slider/view.dart'; // ignore: unused_import
-import 'slider/view_reorderable.dart'; // ignore: unused_import
+import 'slider/view.dart';
 
 void main() => runApp(const MyApp());
 
@@ -90,7 +89,7 @@ class _SliderWidgetState extends State<SliderWidget> {
             }
             return false;
           },
-          child: SliderViewReorderable(
+          child: SliderView(
             controller: controller,
             onReorder: (oldIndex, newIndex) {
               setState(() {
@@ -103,10 +102,10 @@ class _SliderWidgetState extends State<SliderWidget> {
             children: [
               for (var i = 0; i < items.length; i++)
                 Container(
-                  width: MediaQuery.of(context).size.width / 3,
+                  //width: MediaQuery.of(context).size.width / 3,
                   key: ValueKey(i),
                   decoration: BoxDecoration(
-                      color: i.isOdd ? Colors.black26 : Colors.black38),
+                      color: items[i].isOdd ? Colors.black26 : Colors.black38),
                   child: Center(
                     child: Text(items[i].toString()),
                   ),

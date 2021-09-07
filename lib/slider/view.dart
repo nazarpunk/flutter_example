@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-
+import 'package:flutter/widgets.dart';
 import 'controller.dart';
+import 'list.dart';
 import 'metrics.dart';
 import 'physics.dart';
 
+/// [ReorderableListView]
 class SliderView extends StatefulWidget {
   SliderView({
     required List<Widget> children,
@@ -13,7 +15,10 @@ class SliderView extends StatefulWidget {
     Key? key,
     this.restorationId,
     this.onPageChanged,
-  })  : childrenDelegate = SliverChildListDelegate(children),
+  })  : assert(
+          children.every((w) => w.key != null),
+          'All children of this widget must have a key.',
+        ),
         itemBuilder = ((context, index) => children[index]),
         itemCount = children.length,
         super(key: key);
@@ -22,12 +27,11 @@ class SliderView extends StatefulWidget {
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
   final String? restorationId;
-  final SliderController controller;
   final ValueChanged<int>? onPageChanged;
-  final SliverChildDelegate childrenDelegate;
+  final SliderController controller;
 
   @override
-  State<SliderView> createState() => _SliderViewState();
+  _SliderViewState createState() => _SliderViewState();
 }
 
 class _SliderViewState extends State<SliderView> {
@@ -89,30 +93,22 @@ class _SliderViewState extends State<SliderView> {
     );
   }
 
-  // ignore: unused_element
   Widget _itemBuilder(BuildContext context, int index) {
     final Widget item = widget.itemBuilder(context, index);
-    assert(() {
-      if (item.key == null) {
-        throw FlutterError(
-          'Every item of ReorderableListView must have a key.',
-        );
-      }
-      return true;
-    }());
+    assert(
+        item.key != null, 'Every item of ReorderableListView must have a key.');
 
     final Widget itemWithSemantics = _wrapWithSemantics(item, index);
     final Key itemGlobalKey =
         _ReorderableListViewChildGlobalKey(item.key!, this);
 
-    return ReorderableDelayedDragStartListener(
+    return SliderReorderableDelayedDragStartListener(
       key: itemGlobalKey,
       index: index,
       child: itemWithSemantics,
     );
   }
 
-  // ignore: unused_element
   Widget _proxyDecorator(
           Widget child, int index, Animation<double> animation) =>
       AnimatedBuilder(
@@ -132,48 +128,42 @@ class _SliderViewState extends State<SliderView> {
       );
 
   @override
-  Widget build(BuildContext context) =>
-      NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification.depth == 0 &&
-              widget.onPageChanged != null &&
-              notification is ScrollUpdateNotification) {
-            final SliderMetrics metrics = notification.metrics as SliderMetrics;
-            final int currentPage = metrics.page!.round();
-            if (currentPage != _lastReportedPage) {
-              _lastReportedPage = currentPage;
-              widget.onPageChanged!(currentPage);
-            }
+  Widget build(BuildContext context) {
+    assert(debugCheckHasMaterialLocalizations(context));
+    assert(debugCheckHasOverlay(context));
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.depth == 0 &&
+            widget.onPageChanged != null &&
+            notification is ScrollUpdateNotification) {
+          final SliderMetrics metrics = notification.metrics as SliderMetrics;
+          final int currentPage = metrics.page!.round();
+          if (currentPage != _lastReportedPage) {
+            _lastReportedPage = currentPage;
+            widget.onPageChanged!(currentPage);
           }
-          return false;
-        },
-        child: Scrollable(
-          axisDirection: AxisDirection.right,
-          controller: widget.controller,
-          physics: const SliderPhysics(),
-          restorationId: widget.restorationId,
-          scrollBehavior: ScrollConfiguration.of(context)
-              .copyWith(scrollbars: false, overscroll: false),
-          viewportBuilder: (context, position) => Viewport(
-            cacheExtent: 0,
-            cacheExtentStyle: CacheExtentStyle.viewport,
-            axisDirection: AxisDirection.right,
-            offset: position,
-            slivers: [
-              SliverFillViewport(
-                viewportFraction: widget.controller.viewportFraction,
-                delegate: widget.childrenDelegate,
-                padEnds: false,
-              ),
-            ],
-          ),
+        }
+        return false;
+      },
+      child: Scrollable(
+        axisDirection: AxisDirection.right,
+        controller: widget.controller,
+        physics: const SliderPhysics(),
+        restorationId: widget.restorationId,
+        scrollBehavior: ScrollConfiguration.of(context)
+            .copyWith(scrollbars: false, overscroll: false),
+        viewportBuilder: (context, position) => SliderReorderableList(
+          position: position,
+          itemBuilder: _itemBuilder,
+          itemCount: widget.itemCount,
+          onReorder: widget.onReorder,
+          proxyDecorator: _proxyDecorator,
         ),
-      );
+      ),
+    );
+  }
 }
-
-/*
-
- */
 
 @optionalTypeArgs
 class _ReorderableListViewChildGlobalKey extends GlobalObjectKey {
