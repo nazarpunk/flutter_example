@@ -1,9 +1,12 @@
+// 🎯 Dart imports:
 import 'dart:math';
 
+// 🐦 Flutter imports:
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+// 🌎 Project imports:
 import 'viewport.dart';
 
 typedef SliderReorderCallback = void Function(int oldIndex, int newIndex);
