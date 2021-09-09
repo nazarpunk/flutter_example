@@ -1,6 +1,8 @@
+// 🐦 Flutter imports:
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'slider/controller.dart';
+
+// 🌎 Project imports:
 import 'slider/view.dart';
 
 void main() => runApp(const MyApp());
@@ -36,25 +38,26 @@ class SliderWidget extends StatefulWidget {
 class _SliderWidgetState extends State<SliderWidget> {
   List<int> items = List<int>.generate(10, (index) => index);
 
-  double get _viewportFraction {
+  int get _itemsCount {
     final w = MediaQuery.of(context).size.width;
-    if (w > 0) {
-      return 1 / 3;
+    if (w < 0) {
+      return 5;
     }
     if (w < 600) {
-      return 1 / 3;
+      return 3;
     }
     if (w < 1200) {
-      return 1 / 4;
+      return 4;
     }
-    return 1 / 5;
+    return 5;
   }
 
   @override
   Widget build(BuildContext context) {
     final SliderController controller =
-        SliderController(viewportFraction: _viewportFraction);
+        SliderController(viewportFraction: 1 / _itemsCount);
     return SliderView(
+      itemsCount: _itemsCount,
       controller: controller,
       onReorder: (oldIndex, newIndex) {
         setState(() {

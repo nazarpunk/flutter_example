@@ -1,11 +1,7 @@
-// 🎯 Dart imports:
-import 'dart:math' as math;
+part of 'view.dart';
 
-// 🐦 Flutter imports:
-import 'package:flutter/material.dart';
-
-class SliderMetrics extends FixedScrollMetrics {
-  SliderMetrics({
+class _Metrics extends FixedScrollMetrics {
+  _Metrics({
     required double? minScrollExtent,
     required double? maxScrollExtent,
     required double? pixels,
@@ -21,7 +17,7 @@ class SliderMetrics extends FixedScrollMetrics {
         );
 
   @override
-  SliderMetrics copyWith({
+  _Metrics copyWith({
     double? minScrollExtent,
     double? maxScrollExtent,
     double? pixels,
@@ -29,7 +25,7 @@ class SliderMetrics extends FixedScrollMetrics {
     AxisDirection? axisDirection,
     double? viewportFraction,
   }) =>
-      SliderMetrics(
+      _Metrics(
         minScrollExtent: minScrollExtent ??
             (hasContentDimensions ? this.minScrollExtent : null),
         maxScrollExtent: maxScrollExtent ??
@@ -40,10 +36,6 @@ class SliderMetrics extends FixedScrollMetrics {
         axisDirection: axisDirection ?? this.axisDirection,
         viewportFraction: viewportFraction ?? this.viewportFraction,
       );
-
-  double? get page =>
-      math.max(0, pixels.clamp(minScrollExtent, maxScrollExtent)) /
-      math.max(1.0, viewportDimension * viewportFraction);
 
   final double viewportFraction;
 }

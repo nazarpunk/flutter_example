@@ -1,18 +1,14 @@
-// 🎯 Dart imports:
-import 'dart:math' as math;
+part of 'view.dart';
 
-// 🐦 Flutter imports:
-import 'package:flutter/material.dart';
+class _Physics extends ScrollPhysics {
+  const _Physics({required this.itemsCount, ScrollPhysics? parent})
+      : super(parent: parent);
 
-// 🌎 Project imports:
-import 'position.dart';
-
-class SliderPhysics extends ScrollPhysics {
-  const SliderPhysics({ScrollPhysics? parent}) : super(parent: parent);
+  final int itemsCount;
 
   @override
-  SliderPhysics applyTo(ScrollPhysics? ancestor) =>
-      SliderPhysics(parent: buildParent(ancestor));
+  _Physics applyTo(ScrollPhysics? ancestor) =>
+      _Physics(itemsCount: itemsCount, parent: buildParent(ancestor));
 
   @override
   double applyBoundaryConditions(ScrollMetrics position, double value) {
@@ -38,15 +34,11 @@ class SliderPhysics extends ScrollPhysics {
   @override
   double get maxFlingVelocity => 1400;
 
-  double _getPage(ScrollMetrics position) {
-    if (position is SliderPosition) {
-      return position.page!;
-    }
-    return position.pixels / position.viewportDimension;
-  }
+  double _getPage(ScrollMetrics position) =>
+      position.pixels / position.viewportDimension;
 
   double _getPixels(ScrollMetrics position, double page) {
-    if (position is SliderPosition) {
+    if (position is _Position) {
       return position.getPixelsFromPage(page);
     }
     return page * position.viewportDimension;
@@ -77,7 +69,7 @@ class SliderPhysics extends ScrollPhysics {
     final double distance = 200 *
         math.exp(1.2 * math.log(.6 * velocity.abs() / 800)) *
         velocity.sign;
-    const int itemsCount = 3;
+
     final double itemSize = position.viewportDimension / itemsCount;
     final int itemPosition = ((position.pixels + distance) / itemSize).round();
     target = itemPosition * itemSize;

@@ -1,10 +1,7 @@
-// 🐦 Flutter imports:
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+part of 'view.dart';
 
-class SliderFillViewport extends StatelessWidget {
-  const SliderFillViewport({
+class _Viewport extends StatelessWidget {
+  const _Viewport({
     required this.delegate,
     Key? key,
     this.viewportFraction = 1.0,
@@ -31,20 +28,18 @@ class _RenderObjectWidget extends SliverMultiBoxAdaptorWidget {
   final double viewportFraction;
 
   @override
-  SliderRenderSliverFillViewport createRenderObject(BuildContext context) =>
-      SliderRenderSliverFillViewport(
+  _FillViewport createRenderObject(BuildContext context) => _FillViewport(
         childManager: context as SliverMultiBoxAdaptorElement,
         viewportFraction: viewportFraction,
       );
 }
 
-class SliderRenderSliverFillViewport extends RenderSliverFixedExtentBoxAdaptor {
-  SliderRenderSliverFillViewport({
+class _FillViewport extends RenderSliverFixedExtentBoxAdaptor {
+  _FillViewport({
     required RenderSliverBoxChildManager childManager,
     double viewportFraction = 1.0,
   })  : assert(viewportFraction > 0.0),
         _viewportFraction = viewportFraction,
-        //_viewportFraction = 1,
         super(childManager: childManager);
 
   @override

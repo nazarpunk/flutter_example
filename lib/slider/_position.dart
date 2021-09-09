@@ -1,20 +1,10 @@
-// 🎯 Dart imports:
-import 'dart:math' as math;
+part of 'view.dart';
 
-// 🐦 Flutter imports:
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-
-// 🌎 Project imports:
-import 'metrics.dart';
-
-class SliderPosition extends ScrollPositionWithSingleContext
-    implements SliderMetrics {
-  SliderPosition({
+class _Position extends ScrollPositionWithSingleContext implements _Metrics {
+  _Position({
     required ScrollPhysics physics,
     required ScrollContext context,
     this.initialPage = 0,
-    bool keepPage = true,
     double viewportFraction = 1.0,
     ScrollPosition? oldPosition,
   })  : assert(viewportFraction > 0.0),
@@ -24,7 +14,7 @@ class SliderPosition extends ScrollPositionWithSingleContext
           physics: physics,
           context: context,
           initialPixels: null,
-          keepScrollOffset: keepPage,
+          keepScrollOffset: true,
           oldPosition: oldPosition,
         );
 
@@ -57,11 +47,7 @@ class SliderPosition extends ScrollPositionWithSingleContext
     if (_viewportFraction == value) {
       return;
     }
-    final double? oldPage = page;
     _viewportFraction = value;
-    if (oldPage != null) {
-      forcePixels(getPixelsFromPage(oldPage));
-    }
   }
 
   double get _initialPageOffset =>
@@ -80,18 +66,6 @@ class SliderPosition extends ScrollPositionWithSingleContext
   double getPixelsFromPage(double page) {
     final double itemSize = viewportDimension * viewportFraction;
     return page * itemSize + _initialPageOffset;
-  }
-
-  @override
-  double? get page {
-    assert(
-      !hasPixels || hasContentDimensions,
-      'Page value is only available after content dimensions are established.',
-    );
-    return !hasPixels || !hasContentDimensions
-        ? null
-        : getPageFromPixels(
-            pixels.clamp(minScrollExtent, maxScrollExtent), viewportDimension);
   }
 
   @override
@@ -156,7 +130,7 @@ class SliderPosition extends ScrollPositionWithSingleContext
   }
 
   @override
-  SliderMetrics copyWith({
+  _Metrics copyWith({
     double? minScrollExtent,
     double? maxScrollExtent,
     double? pixels,
@@ -164,7 +138,7 @@ class SliderPosition extends ScrollPositionWithSingleContext
     AxisDirection? axisDirection,
     double? viewportFraction,
   }) =>
-      SliderMetrics(
+      _Metrics(
         minScrollExtent: minScrollExtent ??
             (hasContentDimensions ? this.minScrollExtent : null),
         maxScrollExtent: maxScrollExtent ??

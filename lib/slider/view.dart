@@ -1,23 +1,38 @@
+// 🎯 Dart imports:
+import 'dart:math' as math;
+
 // 🐦 Flutter imports:
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-// 🌎 Project imports:
-import 'controller.dart';
-import 'list.dart';
-import 'metrics.dart';
-import 'physics.dart';
+part '_drag_proxy.dart';
 
-/// [ReorderableListView]
+part '_item.dart';
+
+part '_key.dart';
+
+part '_list.dart';
+
+part '_metrics.dart';
+
+part '_physics.dart';
+
+part '_position.dart';
+
+part '_viewport.dart';
+
+part 'controller.dart';
+
 class SliderView extends StatefulWidget {
   SliderView({
     required List<Widget> children,
+    required this.itemsCount,
     required this.controller,
     required this.onReorder,
     Key? key,
-    this.restorationId,
-    this.onPageChanged,
   })  : assert(
           children.every((w) => w.key != null),
           'All children of this widget must have a key.',
@@ -26,11 +41,10 @@ class SliderView extends StatefulWidget {
         itemCount = children.length,
         super(key: key);
 
+  final int itemsCount;
   final ReorderCallback onReorder;
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
-  final String? restorationId;
-  final ValueChanged<int>? onPageChanged;
   final SliderController controller;
 
   @override
@@ -38,85 +52,32 @@ class SliderView extends StatefulWidget {
 }
 
 class _SliderViewState extends State<SliderView> {
-  int _lastReportedPage = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _lastReportedPage = widget.controller.initialPage;
-  }
-
-  Widget _itemBuilder(BuildContext context, int index) {
-    final Widget item = widget.itemBuilder(context, index);
-    assert(
-        item.key != null, 'Every item of ReorderableListView must have a key.');
-
-    final Key itemGlobalKey =
-        _ReorderableListViewChildGlobalKey(item.key!, this);
-
-    return SliderReorderableDelayedDragStartListener(
-      key: itemGlobalKey,
-      index: index,
-      child: item,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));
     assert(debugCheckHasOverlay(context));
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification.depth == 0 &&
-            widget.onPageChanged != null &&
-            notification is ScrollUpdateNotification) {
-          final SliderMetrics metrics = notification.metrics as SliderMetrics;
-          final int currentPage = metrics.page!.round();
-          if (currentPage != _lastReportedPage) {
-            _lastReportedPage = currentPage;
-            widget.onPageChanged!(currentPage);
-          }
-        }
-        return false;
-      },
-      child: Scrollable(
-        axisDirection: AxisDirection.right,
-        controller: widget.controller,
-        physics: const SliderPhysics(),
-        restorationId: widget.restorationId,
-        scrollBehavior: ScrollConfiguration.of(context)
-            .copyWith(scrollbars: false, overscroll: false),
-        viewportBuilder: (context, position) => SliderReorderableList(
-          viewportFraction: widget.controller.viewportFraction,
-          position: position,
-          itemBuilder: _itemBuilder,
-          itemCount: widget.itemCount,
-          onReorder: widget.onReorder,
-        ),
+    return Scrollable(
+      axisDirection: AxisDirection.right,
+      controller: widget.controller,
+      physics: _Physics(itemsCount: widget.itemsCount),
+      scrollBehavior: ScrollConfiguration.of(context)
+          .copyWith(scrollbars: false, overscroll: false),
+      viewportBuilder: (context, position) => _List(
+        viewportFraction: widget.controller.viewportFraction,
+        position: position,
+        itemBuilder: (context, index) {
+          final Widget item = widget.itemBuilder(context, index);
+          assert(item.key != null, 'Every item of must have a key.');
+          return _DelayedDragStartListener(
+            key: _ViewGlobalKey(item.key!, this),
+            index: index,
+            child: item,
+          );
+        },
+        itemCount: widget.itemCount,
+        onReorder: widget.onReorder,
       ),
     );
   }
-}
-
-@optionalTypeArgs
-class _ReorderableListViewChildGlobalKey extends GlobalObjectKey {
-  const _ReorderableListViewChildGlobalKey(this.subKey, this.state)
-      : super(subKey);
-
-  final Key subKey;
-  final State state;
-
-  @override
-  bool operator ==(Object other) {
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    return other is _ReorderableListViewChildGlobalKey &&
-        other.subKey == subKey &&
-        other.state == state;
-  }
-
-  @override
-  int get hashCode => hashValues(subKey, state);
 }
