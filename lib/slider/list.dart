@@ -11,24 +11,21 @@ import 'viewport.dart';
 
 typedef SliderReorderCallback = void Function(int oldIndex, int newIndex);
 
-typedef SliderReorderItemProxyDecorator = Widget Function(
-    Widget child, int index, Animation<double> animation);
-
 class SliderReorderableList extends StatefulWidget {
   const SliderReorderableList({
     required this.itemBuilder,
     required this.itemCount,
     required this.onReorder,
+    required this.viewportFraction,
     Key? key,
     this.position,
-    this.proxyDecorator,
   })  : assert(itemCount >= 0),
         super(key: key);
 
+  final double viewportFraction;
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
   final SliderReorderCallback onReorder;
-  final SliderReorderItemProxyDecorator? proxyDecorator;
   final ViewportOffset? position;
 
   @override
@@ -48,15 +45,15 @@ class SliderReorderableList extends StatefulWidget {
 
 class SliderReorderableListState extends State<SliderReorderableList>
     with TickerProviderStateMixin {
-  final Map<int, _ReorderableItemState> _items = <int, _ReorderableItemState>{};
+  final Map<int, _ItemState> _items = <int, _ItemState>{};
 
   OverlayEntry? _overlayEntry;
   int? _dragIndex;
   _DragInfo? _dragInfo;
   int? _insertIndex;
   Offset? _finalDropPosition;
-  MultiDragGestureRecognizer<MultiDragPointerState>? _recognizer;
-  bool _autoScrolling = false;
+  MultiDragGestureRecognizer? _recognizer;
+  bool _autoScrolling = true;
 
   @override
   void didUpdateWidget(covariant SliderReorderableList oldWidget) {
@@ -75,7 +72,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
   void startItemDragReorder({
     required int index,
     required PointerDownEvent event,
-    required MultiDragGestureRecognizer<MultiDragPointerState> recognizer,
+    required MultiDragGestureRecognizer recognizer,
   }) {
     assert(0 <= index && index < widget.itemCount);
     setState(() {
@@ -97,7 +94,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
     _dragReset();
   }
 
-  void _registerItem(_ReorderableItemState item) {
+  void _registerItem(_ItemState item) {
     _items[item.index] = item;
     if (item.index == _dragInfo?.index) {
       item
@@ -106,8 +103,8 @@ class SliderReorderableListState extends State<SliderReorderableList>
     }
   }
 
-  void _unregisterItem(int index, _ReorderableItemState item) {
-    final _ReorderableItemState? currentItem = _items[index];
+  void _unregisterItem(int index, _ItemState item) {
+    final _ItemState? currentItem = _items[index];
     if (currentItem == item) {
       _items.remove(index);
     }
@@ -115,7 +112,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
 
   Drag? _dragStart(Offset position) {
     assert(_dragInfo == null);
-    final _ReorderableItemState item = _items[_dragIndex!]!
+    final _ItemState item = _items[_dragIndex!]!
       ..dragging = true
       ..rebuild();
 
@@ -127,7 +124,6 @@ class SliderReorderableListState extends State<SliderReorderableList>
       onCancel: _dragCancel,
       onEnd: _dragEnd,
       onDropCompleted: _dropCompleted,
-      proxyDecorator: widget.proxyDecorator,
       tickerProvider: this,
     );
     _dragInfo!.startDrag();
@@ -137,7 +133,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
     _overlayEntry = OverlayEntry(builder: _dragInfo!.createProxy);
     overlay.insert(_overlayEntry!);
 
-    for (final _ReorderableItemState childItem in _items.values) {
+    for (final _ItemState childItem in _items.values) {
       if (childItem == item || !childItem.mounted) {
         continue;
       }
@@ -201,7 +197,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
   }
 
   void _resetItemGap() {
-    for (final _ReorderableItemState item in _items.values) {
+    for (final _ItemState item in _items.values) {
       item.resetGap();
     }
   }
@@ -214,7 +210,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
     final double proxyItemEnd = proxyItemStart + gapExtent;
 
     int newIndex = _insertIndex!;
-    for (final _ReorderableItemState item in _items.values) {
+    for (final _ItemState item in _items.values) {
       if (item.index == _dragIndex! || !item.mounted) {
         continue;
       }
@@ -240,7 +236,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
 
     if (newIndex != _insertIndex) {
       _insertIndex = newIndex;
-      for (final _ReorderableItemState item in _items.values) {
+      for (final _ItemState item in _items.values) {
         if (item.index == _dragIndex! || !item.mounted) {
           continue;
         }
@@ -250,7 +246,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
   }
 
   Future<void> _autoScrollIfNecessary() async {
-    if (!_autoScrolling && _dragInfo != null && _dragInfo!.scrollable != null) {
+    if (_autoScrolling && _dragInfo != null && _dragInfo!.scrollable != null) {
       final ScrollPosition position = _dragInfo!.scrollable!.position;
       double? newOffset;
       const Duration duration = Duration(milliseconds: 14);
@@ -281,13 +277,13 @@ class SliderReorderableListState extends State<SliderReorderableList>
       }
 
       if (newOffset != null && (newOffset - position.pixels).abs() >= 1.0) {
-        _autoScrolling = true;
+        _autoScrolling = false;
         await position.animateTo(
           newOffset,
           duration: duration,
           curve: Curves.linear,
         );
-        _autoScrolling = false;
+        _autoScrolling = true;
         if (_dragInfo != null) {
           _dragUpdateItems();
           _autoScrollIfNecessary(); // ignore: unawaited_futures
@@ -300,7 +296,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
     final Widget child = widget.itemBuilder(context, index);
     assert(child.key != null, 'All list items must have a key');
     final OverlayState overlay = Overlay.of(context)!;
-    return _ReorderableItem(
+    return _Item(
       key: _ReorderableItemGlobalKey(child.key!, index, this),
       index: index,
       capturedThemes:
@@ -312,7 +308,6 @@ class SliderReorderableListState extends State<SliderReorderableList>
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasOverlay(context));
-
     return Viewport(
         cacheExtent: 0,
         cacheExtentStyle: CacheExtentStyle.viewport,
@@ -320,7 +315,7 @@ class SliderReorderableListState extends State<SliderReorderableList>
         offset: widget.position ?? ViewportOffset.zero(),
         slivers: [
           SliderFillViewport(
-            viewportFraction: 1 / 3,
+            viewportFraction: widget.viewportFraction,
             delegate: SliverChildBuilderDelegate(
               _itemBuilder,
               childCount: widget.itemCount,
@@ -330,8 +325,8 @@ class SliderReorderableListState extends State<SliderReorderableList>
   }
 }
 
-class _ReorderableItem extends StatefulWidget {
-  const _ReorderableItem({
+class _Item extends StatefulWidget {
+  const _Item({
     required Key key,
     required this.index,
     required this.child,
@@ -343,10 +338,10 @@ class _ReorderableItem extends StatefulWidget {
   final CapturedThemes capturedThemes;
 
   @override
-  _ReorderableItemState createState() => _ReorderableItemState();
+  _ItemState createState() => _ItemState();
 }
 
-class _ReorderableItemState extends State<_ReorderableItem> {
+class _ItemState extends State<_Item> {
   late SliderReorderableListState _listState;
 
   Offset _startOffset = Offset.zero;
@@ -384,7 +379,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
   }
 
   @override
-  void didUpdateWidget(covariant _ReorderableItem oldWidget) {
+  void didUpdateWidget(covariant _Item oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.index != widget.index) {
       _listState
@@ -501,7 +496,7 @@ class SliderReorderableDragStartListener extends StatelessWidget {
       );
 
   @protected
-  MultiDragGestureRecognizer<MultiDragPointerState> createRecognizer() =>
+  MultiDragGestureRecognizer createRecognizer() =>
       ImmediateMultiDragGestureRecognizer(debugOwner: this);
 
   void _startDragging(BuildContext context, PointerDownEvent event) {
@@ -524,7 +519,7 @@ class SliderReorderableDelayedDragStartListener
   }) : super(key: key, child: child, index: index);
 
   @override
-  MultiDragGestureRecognizer<MultiDragPointerState> createRecognizer() =>
+  MultiDragGestureRecognizer createRecognizer() =>
       DelayedMultiDragGestureRecognizer(debugOwner: this);
 }
 
@@ -538,14 +533,13 @@ typedef _DragItemCallback = void Function(_DragInfo item);
 
 class _DragInfo extends Drag {
   _DragInfo({
-    required _ReorderableItemState item,
+    required _ItemState item,
     required this.tickerProvider,
     Offset initialPosition = Offset.zero,
     this.onUpdate,
     this.onEnd,
     this.onCancel,
     this.onDropCompleted,
-    this.proxyDecorator,
   }) {
     final RenderBox itemRenderBox =
         item.context.findRenderObject()! as RenderBox;
@@ -564,7 +558,6 @@ class _DragInfo extends Drag {
   final _DragItemCallback? onEnd;
   final _DragItemCallback? onCancel;
   final VoidCallback? onDropCompleted;
-  final SliderReorderItemProxyDecorator? proxyDecorator;
   final TickerProvider tickerProvider;
 
   late SliderReorderableListState listState;
@@ -628,7 +621,6 @@ class _DragInfo extends Drag {
           size: itemSize,
           animation: _proxyAnimation!,
           position: dragPosition - dragOffset - _overlayOrigin(context),
-          proxyDecorator: proxyDecorator,
           child: child,
         ),
       );
@@ -648,7 +640,6 @@ class _DragItemProxy extends StatelessWidget {
     required this.position,
     required this.size,
     required this.animation,
-    required this.proxyDecorator,
     Key? key,
   }) : super(key: key);
 
@@ -658,12 +649,24 @@ class _DragItemProxy extends StatelessWidget {
   final Offset position;
   final Size size;
   final AnimationController animation;
-  final SliderReorderItemProxyDecorator? proxyDecorator;
 
   @override
   Widget build(BuildContext context) {
-    final Widget proxyChild =
-        proxyDecorator?.call(child, index, animation.view) ?? child;
+    final Widget proxyChild = AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final double ease = Curves.easeInOut.transform(animation.value);
+        return Transform.scale(
+          scale: 1 - .08 * ease,
+          child: Container(
+            decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF8A1215))),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
     final Offset overlayOrigin = _overlayOrigin(context);
 
     return AnimatedBuilder(

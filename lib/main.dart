@@ -1,16 +1,26 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'slider/controller.dart';
 import 'slider/view.dart';
 
 void main() => runApp(const MyApp());
 
+class _ScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+      };
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => const MaterialApp(
+  Widget build(BuildContext context) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: Scaffold(
+        scrollBehavior: _ScrollBehavior(),
+        home: const Scaffold(
           body: SliderWidget(),
         ),
       );
@@ -26,99 +36,45 @@ class SliderWidget extends StatefulWidget {
 class _SliderWidgetState extends State<SliderWidget> {
   List<int> items = List<int>.generate(10, (index) => index);
 
-  List<TextSpan> _debugText = [];
-  String _status = '';
-  final int _itemsCount = 3;
+  double get _viewportFraction {
+    final w = MediaQuery.of(context).size.width;
+    if (w > 0) {
+      return 1 / 3;
+    }
+    if (w < 600) {
+      return 1 / 3;
+    }
+    if (w < 1200) {
+      return 1 / 4;
+    }
+    return 1 / 5;
+  }
 
   @override
-
-  /// [PageView]
-  // ignore: prefer_expression_function_bodies
   Widget build(BuildContext context) {
     final SliderController controller =
-        SliderController(viewportFraction: 1 / 3);
-    return Stack(
+        SliderController(viewportFraction: _viewportFraction);
+    return SliderView(
+      controller: controller,
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (oldIndex < newIndex) {
+            newIndex -= 1;
+          }
+          items.insert(newIndex, items.removeAt(oldIndex));
+        });
+      },
       children: [
-        NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollStartNotification) {
-              _status = 'S';
-            } else if (notification is ScrollUpdateNotification) {
-              _status = 'U';
-            } else if (notification is ScrollEndNotification) {
-              _status = 'E';
-            }
-
-            if (notification is ScrollUpdateNotification) {
-              final p = notification.metrics;
-              final double vp = p.viewportDimension;
-              final double _itemSize = vp / _itemsCount;
-              final int _itemCurrent = (p.pixels / _itemSize).round();
-
-              final _positions = StringBuffer()..write('0');
-              for (var i = 1; i < 6; i++) {
-                _positions.write(', ${(i * _itemSize).toInt()}');
-              }
-
-              const _s = TextStyle(color: Colors.grey);
-
-              List<TextSpan> _d = [
-                const TextSpan(text: '\n status: ', style: _s),
-                TextSpan(text: _status.toString()),
-                const TextSpan(text: '\n pixels: ', style: _s),
-                TextSpan(text: p.pixels.toStringAsFixed(0)),
-                const TextSpan(text: '\n viewport: ', style: _s),
-                TextSpan(text: vp.toStringAsFixed(0)),
-                const TextSpan(text: '\n itemSize: ', style: _s),
-                TextSpan(text: _itemSize.toStringAsFixed(0)),
-                const TextSpan(text: '\n itemCount: ', style: _s),
-                TextSpan(text: _itemsCount.toString()),
-                const TextSpan(text: '\n itemCurrent: ', style: _s),
-                TextSpan(text: _itemCurrent.toString()),
-                const TextSpan(text: '\n'),
-                TextSpan(text: p.minScrollExtent.toStringAsFixed(0)),
-                const TextSpan(text: '..[', style: _s),
-                TextSpan(text: _positions.toString()),
-                const TextSpan(text: ']..', style: _s),
-                TextSpan(text: p.maxScrollExtent.toStringAsFixed(0)),
-              ];
-
-              setState(() {
-                _debugText = _d;
-              });
-            }
-            return false;
-          },
-          child: SliderView(
-            controller: controller,
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                if (oldIndex < newIndex) {
-                  newIndex -= 1;
-                }
-                items.insert(newIndex, items.removeAt(oldIndex));
-              });
-            },
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Container(
-                  //width: MediaQuery.of(context).size.width / 3,
-                  key: ValueKey(i),
-                  decoration: BoxDecoration(
-                      color: items[i].isOdd ? Colors.black26 : Colors.black38),
-                  child: Center(
-                    child: Text(items[i].toString()),
-                  ),
-                ),
-            ],
+        for (var i = 0; i < items.length; i++)
+          Container(
+            //width: MediaQuery.of(context).size.width / 3,
+            key: ValueKey(i),
+            decoration: BoxDecoration(
+                color: items[i].isOdd ? Colors.black26 : Colors.black38),
+            child: Center(
+              child: Text(items[i].toString()),
+            ),
           ),
-        ),
-        RichText(
-          text: TextSpan(
-              children: _debugText,
-              style: const TextStyle(
-                  color: Colors.white, backgroundColor: Colors.black)),
-        ),
       ],
     );
   }

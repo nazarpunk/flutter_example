@@ -46,89 +46,20 @@ class _SliderViewState extends State<SliderView> {
     _lastReportedPage = widget.controller.initialPage;
   }
 
-  Widget _wrapWithSemantics(Widget child, int index) {
-    void reorder(int startIndex, int endIndex) {
-      if (startIndex != endIndex) {
-        widget.onReorder(startIndex, endIndex);
-      }
-    }
-
-    final Map<CustomSemanticsAction, VoidCallback> semanticsActions =
-        <CustomSemanticsAction, VoidCallback>{};
-
-    void moveToStart() => reorder(index, 0);
-    void moveToEnd() => reorder(index, widget.itemCount);
-    void moveBefore() => reorder(index, index - 1);
-    void moveAfter() => reorder(index, index + 2);
-
-    final MaterialLocalizations localizations =
-        MaterialLocalizations.of(context);
-
-    if (index > 0) {
-      semanticsActions[
-              CustomSemanticsAction(label: localizations.reorderItemToStart)] =
-          moveToStart;
-      String reorderItemBefore = localizations.reorderItemUp;
-      reorderItemBefore = Directionality.of(context) == TextDirection.ltr
-          ? localizations.reorderItemLeft
-          : localizations.reorderItemRight;
-      semanticsActions[CustomSemanticsAction(label: reorderItemBefore)] =
-          moveBefore;
-    }
-
-    if (index < widget.itemCount - 1) {
-      String reorderItemAfter = localizations.reorderItemDown;
-      reorderItemAfter = Directionality.of(context) == TextDirection.ltr
-          ? localizations.reorderItemRight
-          : localizations.reorderItemLeft;
-      semanticsActions[CustomSemanticsAction(label: reorderItemAfter)] =
-          moveAfter;
-      semanticsActions[
-              CustomSemanticsAction(label: localizations.reorderItemToEnd)] =
-          moveToEnd;
-    }
-
-    return MergeSemantics(
-      child: Semantics(
-        customSemanticsActions: semanticsActions,
-        child: child,
-      ),
-    );
-  }
-
   Widget _itemBuilder(BuildContext context, int index) {
     final Widget item = widget.itemBuilder(context, index);
     assert(
         item.key != null, 'Every item of ReorderableListView must have a key.');
 
-    final Widget itemWithSemantics = _wrapWithSemantics(item, index);
     final Key itemGlobalKey =
         _ReorderableListViewChildGlobalKey(item.key!, this);
 
     return SliderReorderableDelayedDragStartListener(
       key: itemGlobalKey,
       index: index,
-      child: itemWithSemantics,
+      child: item,
     );
   }
-
-  Widget _proxyDecorator(
-          Widget child, int index, Animation<double> animation) =>
-      AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          final double ease = Curves.easeInOut.transform(animation.value);
-          return Transform.scale(
-            scale: 1 - .08 * ease,
-            child: Container(
-              decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF8A1215))),
-              child: child,
-            ),
-          );
-        },
-        child: child,
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -157,11 +88,11 @@ class _SliderViewState extends State<SliderView> {
         scrollBehavior: ScrollConfiguration.of(context)
             .copyWith(scrollbars: false, overscroll: false),
         viewportBuilder: (context, position) => SliderReorderableList(
+          viewportFraction: widget.controller.viewportFraction,
           position: position,
           itemBuilder: _itemBuilder,
           itemCount: widget.itemCount,
           onReorder: widget.onReorder,
-          proxyDecorator: _proxyDecorator,
         ),
       ),
     );
