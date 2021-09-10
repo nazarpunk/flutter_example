@@ -12,14 +12,14 @@ class _Viewport extends StatelessWidget {
   final SliverChildDelegate delegate;
 
   @override
-  Widget build(BuildContext context) => _RenderObjectWidget(
+  Widget build(BuildContext context) => _MultiBoxAdaptorWidget(
         viewportFraction: viewportFraction,
         delegate: delegate,
       );
 }
 
-class _RenderObjectWidget extends SliverMultiBoxAdaptorWidget {
-  const _RenderObjectWidget({
+class _MultiBoxAdaptorWidget extends SliverMultiBoxAdaptorWidget {
+  const _MultiBoxAdaptorWidget({
     required SliverChildDelegate delegate,
     required this.viewportFraction,
     Key? key,
@@ -28,14 +28,15 @@ class _RenderObjectWidget extends SliverMultiBoxAdaptorWidget {
   final double viewportFraction;
 
   @override
-  _FillViewport createRenderObject(BuildContext context) => _FillViewport(
+  _SliverFixedExtentBoxAdaptor createRenderObject(BuildContext context) =>
+      _SliverFixedExtentBoxAdaptor(
         childManager: context as SliverMultiBoxAdaptorElement,
         viewportFraction: viewportFraction,
       );
 }
 
-class _FillViewport extends RenderSliverFixedExtentBoxAdaptor {
-  _FillViewport({
+class _SliverFixedExtentBoxAdaptor extends RenderSliverFixedExtentBoxAdaptor {
+  _SliverFixedExtentBoxAdaptor({
     required RenderSliverBoxChildManager childManager,
     double viewportFraction = 1.0,
   })  : assert(viewportFraction > 0.0),

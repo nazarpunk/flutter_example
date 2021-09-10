@@ -57,6 +57,8 @@ class _SliderViewState extends State<SliderView> {
     assert(debugCheckHasMaterialLocalizations(context));
     assert(debugCheckHasOverlay(context));
 
+    //print('build ${widget.itemsCount}');
+
     return Scrollable(
       axisDirection: AxisDirection.right,
       controller: widget.controller,

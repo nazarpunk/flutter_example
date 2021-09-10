@@ -296,6 +296,7 @@ class _ListState extends State<_List> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasOverlay(context));
+
     return Viewport(
         cacheExtent: 0,
         cacheExtentStyle: CacheExtentStyle.viewport,
