@@ -54,8 +54,7 @@ class _SliderWidgetState extends State<SliderWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final SliderController controller =
-        SliderController(viewportFraction: 1 / _itemsCount);
+    final SliderController controller = SliderController();
     return SliderView(
       itemsCount: _itemsCount,
       controller: controller,

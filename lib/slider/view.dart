@@ -64,7 +64,7 @@ class _SliderViewState extends State<SliderView> {
       scrollBehavior: ScrollConfiguration.of(context)
           .copyWith(scrollbars: false, overscroll: false),
       viewportBuilder: (context, position) => _List(
-        viewportFraction: widget.controller.viewportFraction,
+        viewportFraction: 1 / widget.itemsCount,
         position: position,
         itemBuilder: (context, index) {
           final Widget item = widget.itemBuilder(context, index);

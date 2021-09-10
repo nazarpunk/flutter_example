@@ -7,7 +7,6 @@ class _Metrics extends FixedScrollMetrics {
     required double? pixels,
     required double? viewportDimension,
     required AxisDirection axisDirection,
-    required this.viewportFraction,
   }) : super(
           minScrollExtent: minScrollExtent,
           maxScrollExtent: maxScrollExtent,
@@ -23,7 +22,6 @@ class _Metrics extends FixedScrollMetrics {
     double? pixels,
     double? viewportDimension,
     AxisDirection? axisDirection,
-    double? viewportFraction,
   }) =>
       _Metrics(
         minScrollExtent: minScrollExtent ??
@@ -34,8 +32,5 @@ class _Metrics extends FixedScrollMetrics {
         viewportDimension: viewportDimension ??
             (hasViewportDimension ? this.viewportDimension : null),
         axisDirection: axisDirection ?? this.axisDirection,
-        viewportFraction: viewportFraction ?? this.viewportFraction,
       );
-
-  final double viewportFraction;
 }
