@@ -282,13 +282,13 @@ class _ListState extends State<_List> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasOverlay(context));
-    return Viewport(
+    return _MultiChildRenderObjectWidget(
         cacheExtent: 0,
         cacheExtentStyle: CacheExtentStyle.viewport,
         axisDirection: AxisDirection.right,
         offset: widget.position ?? ViewportOffset.zero(),
         slivers: [
-          _Viewport(
+          _MultiBoxAdaptorWidget(
             viewportFraction: 1 / widget.itemsCount,
             delegate: SliverChildBuilderDelegate(
               (context, index) {

@@ -1,23 +1,5 @@
 part of 'view.dart';
 
-class _Viewport extends StatelessWidget {
-  const _Viewport({
-    required this.delegate,
-    Key? key,
-    this.viewportFraction = 1.0,
-  })  : assert(viewportFraction > 0.0),
-        super(key: key);
-
-  final double viewportFraction;
-  final SliverChildDelegate delegate;
-
-  @override
-  Widget build(BuildContext context) => _MultiBoxAdaptorWidget(
-        viewportFraction: viewportFraction,
-        delegate: delegate,
-      );
-}
-
 class _MultiBoxAdaptorWidget extends SliverMultiBoxAdaptorWidget {
   const _MultiBoxAdaptorWidget({
     required SliverChildDelegate delegate,
