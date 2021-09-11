@@ -30,7 +30,6 @@ class SliderView extends StatefulWidget {
   SliderView({
     required List<Widget> children,
     required this.itemsCount,
-    required this.controller,
     required this.onReorder,
     Key? key,
   })  : assert(
@@ -45,7 +44,6 @@ class SliderView extends StatefulWidget {
   final ReorderCallback onReorder;
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
-  final SliderController controller;
 
   @override
   _SliderViewState createState() => _SliderViewState();
@@ -56,17 +54,16 @@ class _SliderViewState extends State<SliderView> {
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterialLocalizations(context));
     assert(debugCheckHasOverlay(context));
-
-    //print('build ${widget.itemsCount}');
+    final SliderController controller = SliderController();
 
     return Scrollable(
       axisDirection: AxisDirection.right,
-      controller: widget.controller,
+      controller: controller,
       physics: _Physics(itemsCount: widget.itemsCount),
       scrollBehavior: ScrollConfiguration.of(context)
           .copyWith(scrollbars: false, overscroll: false),
       viewportBuilder: (context, position) => _List(
-        viewportFraction: 1 / widget.itemsCount,
+        itemsCount: widget.itemsCount,
         position: position,
         itemBuilder: (context, index) {
           final Widget item = widget.itemBuilder(context, index);

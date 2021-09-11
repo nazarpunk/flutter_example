@@ -4,16 +4,16 @@ class _List extends StatefulWidget {
   const _List({
     required this.itemBuilder,
     required this.itemCount,
+    required this.itemsCount,
     required this.onReorder,
-    required this.viewportFraction,
     Key? key,
     this.position,
   })  : assert(itemCount >= 0),
         super(key: key);
 
-  final double viewportFraction;
   final IndexedWidgetBuilder itemBuilder;
   final int itemCount;
+  final int itemsCount;
   final void Function(int, int) onReorder;
   final ViewportOffset? position;
 
@@ -279,24 +279,9 @@ class _ListState extends State<_List> with TickerProviderStateMixin {
     }
   }
 
-  Widget _itemBuilder(BuildContext context, int index) {
-    final Widget child = widget.itemBuilder(context, index);
-
-    assert(child.key != null, 'All list items must have a key');
-    final OverlayState overlay = Overlay.of(context)!;
-    return _Item(
-      key: _ListGlobalKey(child.key!, index, this),
-      index: index,
-      capturedThemes:
-          InheritedTheme.capture(from: context, to: overlay.context),
-      child: child,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasOverlay(context));
-
     return Viewport(
         cacheExtent: 0,
         cacheExtentStyle: CacheExtentStyle.viewport,
@@ -304,9 +289,20 @@ class _ListState extends State<_List> with TickerProviderStateMixin {
         offset: widget.position ?? ViewportOffset.zero(),
         slivers: [
           _Viewport(
-            viewportFraction: widget.viewportFraction,
+            viewportFraction: 1 / widget.itemsCount,
             delegate: SliverChildBuilderDelegate(
-              _itemBuilder,
+              (context, index) {
+                final Widget child = widget.itemBuilder(context, index);
+                assert(child.key != null, 'All list items must have a key');
+                final OverlayState overlay = Overlay.of(context)!;
+                return _Item(
+                  key: _ListGlobalKey(child.key!, index, this),
+                  index: index,
+                  capturedThemes: InheritedTheme.capture(
+                      from: context, to: overlay.context),
+                  child: child,
+                );
+              },
               childCount: widget.itemCount,
             ),
           )

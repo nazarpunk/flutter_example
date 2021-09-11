@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 // 🌎 Project imports:
 import 'slider/view.dart';
 
-void main() => runApp(const MyApp());
+void main() => runApp(const _App());
 
 class _ScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -15,8 +15,8 @@ class _ScrollBehavior extends MaterialScrollBehavior {
       };
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class _App extends StatelessWidget {
+  const _App({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -53,31 +53,27 @@ class _SliderWidgetState extends State<SliderWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final SliderController controller = SliderController();
-    return SliderView(
-      itemsCount: _itemsCount,
-      controller: controller,
-      onReorder: (oldIndex, newIndex) {
-        setState(() {
-          if (oldIndex < newIndex) {
-            newIndex -= 1;
-          }
-          items.insert(newIndex, items.removeAt(oldIndex));
-        });
-      },
-      children: [
-        for (var i = 0; i < items.length; i++)
-          Container(
-            //width: MediaQuery.of(context).size.width / 3,
-            key: ValueKey(i),
-            decoration: BoxDecoration(
-                color: items[i].isOdd ? Colors.black26 : Colors.black38),
-            child: Center(
-              child: Text(items[i].toString()),
+  Widget build(BuildContext context) => SliderView(
+        itemsCount: _itemsCount,
+        onReorder: (oldIndex, newIndex) {
+          setState(() {
+            if (oldIndex < newIndex) {
+              newIndex -= 1;
+            }
+            items.insert(newIndex, items.removeAt(oldIndex));
+          });
+        },
+        children: [
+          for (var i = 0; i < items.length; i++)
+            Container(
+              width: MediaQuery.of(context).size.width / 3,
+              key: ValueKey(i),
+              decoration: BoxDecoration(
+                  color: items[i].isOdd ? Colors.black26 : Colors.black38),
+              child: Center(
+                child: Text(items[i].toString()),
+              ),
             ),
-          ),
-      ],
-    );
-  }
+        ],
+      );
 }
