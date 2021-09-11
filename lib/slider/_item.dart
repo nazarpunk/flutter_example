@@ -69,6 +69,7 @@ class _ItemState extends State<_Item> {
       return const SizedBox();
     }
     _listState._registerItem(this);
+
     return Transform(
       transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
       child: widget.child,

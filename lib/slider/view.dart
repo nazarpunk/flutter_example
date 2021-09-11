@@ -70,11 +70,27 @@ class _SliderViewState extends State<SliderView> {
         itemBuilder: (context, index) {
           final Widget item = widget.itemBuilder(context, index);
           assert(item.key != null, 'Every item of must have a key.');
+          return Listener(
+            key: _ViewGlobalKey(item.key!, this),
+            onPointerDown: (event) {
+              final _ListState? list = _List.maybeOf(context);
+              list?.startItemDragReorder(
+                index: index,
+                event: event,
+                recognizer: DelayedMultiDragGestureRecognizer(debugOwner: this),
+              );
+            },
+            child: item,
+          );
+
+          /*
           return _DelayedDragStartListener(
             key: _ViewGlobalKey(item.key!, this),
             index: index,
             child: item,
           );
+
+           */
         },
         itemCount: widget.itemCount,
         onReorder: widget.onReorder,

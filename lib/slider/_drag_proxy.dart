@@ -1,45 +1,5 @@
 part of 'view.dart';
 
-class _DragStartListener extends StatelessWidget {
-  const _DragStartListener({
-    required this.child,
-    required this.index,
-    Key? key,
-  }) : super(key: key);
-
-  final Widget child;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) => Listener(
-        onPointerDown: (event) {
-          final _ListState? list = _List.maybeOf(context);
-          list?.startItemDragReorder(
-            index: index,
-            event: event,
-            recognizer: createRecognizer(),
-          );
-        },
-        child: child,
-      );
-
-  @protected
-  MultiDragGestureRecognizer createRecognizer() =>
-      ImmediateMultiDragGestureRecognizer(debugOwner: this);
-}
-
-class _DelayedDragStartListener extends _DragStartListener {
-  const _DelayedDragStartListener({
-    required Widget child,
-    required int index,
-    Key? key,
-  }) : super(key: key, child: child, index: index);
-
-  @override
-  MultiDragGestureRecognizer createRecognizer() =>
-      DelayedMultiDragGestureRecognizer(debugOwner: this);
-}
-
 class _DragInfo extends Drag {
   _DragInfo({
     required _ItemState item,
